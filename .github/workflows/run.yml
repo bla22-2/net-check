@@ -1,0 +1,68 @@
+name: Domain Checker
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  checker:
+    runs-on: ubuntu-latest
+    # 4 hours 10 minutes — gives node script time to stop cleanly at 3h55m,
+    # then commit + restart before GitHub hard-kills the runner
+    timeout-minutes: 250
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Packages
+        run: npm install
+
+      # Install Chromium dependencies explicitly — prevents silent Puppeteer crashes
+      - name: Install Chromium Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
+            libxdamage1 libxfixes3 libxrandr2 libgbm1 \
+            libasound2t64 || \
+          sudo apt-get install -y -qq \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
+            libxdamage1 libxfixes3 libxrandr2 libgbm1 \
+            libasound2
+
+      - name: Run Checker
+        run: node home.js
+
+      - name: Commit Progress
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add results.txt last-domain.txt completed.txt 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "checkpoint [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git push
+
+      - name: Restart Workflow
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f completed.txt ]; then
+            echo "Not finished — triggering next run..."
+            # Use the actual filename of this workflow file
+            gh workflow run run.yml --ref ${{ github.ref_name }}
+            echo "Next run triggered."
+          else
+            echo "All domains finished. No restart needed."
+          fi
