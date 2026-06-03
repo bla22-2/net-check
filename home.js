@@ -17,7 +17,7 @@ const MIN_SCORE = 6;
 const MIN_TLDS = 10;
 const AUTO_PASS_TLDS = 20;
 
-const WORKERS = 3;
+const WORKERS = 4;
 
 const MIN_DELAY = 150;
 const MAX_DELAY = 500;
