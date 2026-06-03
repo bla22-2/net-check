@@ -9,7 +9,7 @@ puppeteer.use(StealthPlugin());
 // SETTINGS
 // ======================================================
 
-const INPUT_FILE = "gem-net.txt";
+const INPUT_FILE = "avai-net.txt";
 const RESULTS_FILE = "results.txt";
 const RESUME_FILE = "last-domain.txt";
 
